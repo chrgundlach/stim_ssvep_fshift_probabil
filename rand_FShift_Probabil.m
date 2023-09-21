@@ -1,4 +1,4 @@
-function [ conmat ] = rand_FShift_PerIrr(p,RDK,flag_training)
+function [ conmat ] = rand_FShift_Probabil(p,RDK,flag_training)
 %rand_FShiftBase randomizes experimental conditions
 % move onset only works for constant frequency for all RDKs (i.e. 120)
 
@@ -7,18 +7,16 @@ function [ conmat ] = rand_FShift_PerIrr(p,RDK,flag_training)
 
 % set trial number etc
 if flag_training~=0
-    conmat.totaltrials = numel(p.stim.condition)*numel(p.stim.eventnum_t)*p.stim.con_repeats_t;
+    conmat.totaltrials = ceil(sum(p.stim.con_repeats_t)*(1+p.trial_irreg_prob));
     conmat.totalblocks = 1;
-    p.stim.eventnum = p.stim.eventnum_t;
 else
-    conmat.totaltrials = sum(numel(p.stim.eventnum_e)*p.stim.con_repeats);
+    conmat.totaltrials = round(sum(p.stim.con_repeats_e)*(1+p.trial_irreg_prob));
     conmat.totalblocks = p.stim.blocknum;
-    p.stim.eventnum = p.stim.eventnum_e;
 end
 conmat.trialsperblock = conmat.totaltrials/conmat.totalblocks;
 
 % matrix with onset times of on framesfor RDKs
-t.onframesonset = nan(numel(RDK.RDK),p.scr_refrate*p.stim.time_postcue);
+t.onframesonset = nan(numel(RDK.RDK),p.scr_refrate*max(p.postcue_time));
 t.onframesonset_times = t.onframesonset; % onset times in s
 for i_rdk = 1:numel(RDK.RDK)
     t.mat = ceil(1:p.scr_refrate/RDK.RDK(i_rdk).freq:size(t.onframesonset,2));
@@ -27,8 +25,8 @@ for i_rdk = 1:numel(RDK.RDK)
 end
 
 % move
-t.movonset_frames=nan(1,p.scr_refrate*p.stim.time_postcue);
-t.movonset_times=nan(1,p.scr_refrate*p.stim.time_postcue);
+t.movonset_frames=nan(1,p.scr_refrate*max(p.postcue_time));
+t.movonset_times=nan(1,p.scr_refrate*max(p.postcue_time));
 t.mat = 1:p.scr_refrate/RDK.RDK(1).mov_freq:size(t.movonset_frames,2);
 t.movonset_frames(t.mat)=1;
 t.movonset_times(t.mat)=t.mat./p.scr_refrate;
@@ -36,10 +34,39 @@ t.movonset_times(t.mat)=t.mat./p.scr_refrate;
 
 %% start randomization
 % randomize condition
-t.mat = repmat(p.stim.condition,conmat.totaltrials/numel(p.stim.condition),1);
-conmat.mats.condition = t.mat(:)';
+if flag_training~=0
+    % distribute conditions
+    conmat.mats.condition = [cell2mat(arrayfun(@(x,y) repmat(x,1,y), p.stim.condition, p.stim.con_repeats_e, 'UniformOutput', false)) ...
+        cell2mat(arrayfun(@(x,y) repmat(x,1,y), p.stim.condition, p.stim.con_repeats_e*p.trial_irreg_prob, 'UniformOutput', false))];
+    % define trial timing type
+    conmat.mats.trial_timing_type = [repmat({'regular'},1,sum(p.stim.con_repeats_e)) ...
+        repmat({'catch'},1,sum(p.stim.con_repeats_e*p.trial_irreg_prob))];
+else % training
+    % distribute conditions
+    t.mat1 = cell2mat(arrayfun(@(x,y) repmat(x,1,y), p.stim.condition, p.stim.con_repeats_t, 'UniformOutput', false));
+    t.mat2 = cell2mat(arrayfun(@(x,y) repmat(x,1,y), ...
+        p.stim.condition, ceil(p.stim.con_repeats_t*p.trial_irreg_prob*(1/prod(p.stim.con_repeats_t*p.trial_irreg_prob))), ...
+        'UniformOutput', false));
+    conmat.mats.condition = [t.mat1 t.mat2(randsample(numel(t.mat2),ceil(sum(p.stim.con_repeats_t*p.trial_irreg_prob))))];
+    % define trial timing type
+    conmat.mats.trial_timing_type = [repmat({'regular'},1,sum(p.stim.con_repeats_t)) ...
+        repmat({'catch'},1,ceil(sum(p.stim.con_repeats_t*p.trial_irreg_prob)))];
+end
 
+% determine attended RDK
+conmat.mats.cue_direction = nan(1,conmat.totaltrials);
+conmat.mats.cue_validity = nan(1,conmat.totaltrials);
+conmat.mats.cue_validity_label = cell(1,conmat.totaltrials);
+t.cue_validity = [1 1 2 2 3 3]; t.cue_validity_label = {'valid';'invalid';'neutral'};
+for i_con = 1:numel(p.stim.condition)
+    % determine cue direction [1 = left, 2 = right, 3 = both]
+    conmat.mats.cue_direction(conmat.mats.condition==p.stim.condition(i_con)) = p.stim.RDK2attend(i_con);
+    % randomize cue conditions (valid, invalid, neutral) [1,2,3]
+    conmat.mats.cue_validity(conmat.mats.condition==p.stim.condition(i_con)) = t.cue_validity(i_con);
+    conmat.mats.cue_validity_label(conmat.mats.condition==p.stim.condition(i_con)) = t.cue_validity_label(t.cue_validity(i_con));
+end
 
+%%%%%%%% up to here
 
 % randomize cue (1 = attend to RDK 1; 2 = attend to RDK 2)
 t.mat = repmat(p.stim.RDK2attend,conmat.totaltrials/numel(p.stim.RDK2attend),1);
