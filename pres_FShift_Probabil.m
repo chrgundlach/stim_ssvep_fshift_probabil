@@ -1,4 +1,4 @@
-function [timing,key,resp] = pres_FShift_PerIrr(p, ps, key, RDK, conmat, blocknum, flag_training)
+function [timing,key,resp] = pres_FShift_Probabil(p, ps, key, RDK, conmat, blocknum, flag_training)
 % presents experiment SSVEP_FShiftBase
 %   p               = parameters
 %   ps              = screen parameters
@@ -51,13 +51,16 @@ for i_tr = 1:numel(trialindex)
     fprintf('%1.0f',mod(i_tr,10))
     inittime=GetSecs;
     %% initialize trial structure, RDK, cross, logs
-    RDKin.trial = struct('duration',conmat.trials(trialindex(i_tr)).post_cue_times+conmat.trials(trialindex(i_tr)).pre_cue_times,...
+    RDKin.trial = struct( ...
+        'duration',conmat.trials(trialindex(i_tr)).post_cue_times+conmat.trials(trialindex(i_tr)).pre_cue_times,...
         'frames',conmat.trials(trialindex(i_tr)).post_cue_frames+conmat.trials(trialindex(i_tr)).pre_cue_frames,...
         'cue',conmat.trials(trialindex(i_tr)).pre_cue_frames+1);
-    RDKin.trial.event = struct('onset',conmat.trials(trialindex(i_tr)).event_onset_frames,...
-        'direction',conmat.trials(trialindex(i_tr)).eventdirection,'RDK',conmat.trials(trialindex(i_tr)).eventRDK);
-    RDKin.RDK.RDK = RDK.RDK(conmat.trials(trialindex(i_tr)).RDK2display);
-    [colmat,dotmat,dotsize,rdkidx,frames] = RDK_init_FShiftPerIrr(RDKin.scr,RDKin.Propixx,RDKin.RDK,RDKin.trial,RDKin.crs);
+    RDKin.trial.event = struct( ...
+        'onset',conmat.trials(trialindex(i_tr)).event_onset_frames,...
+        'color',conmat.trials(trialindex(i_tr)).event_col, ...
+        'RDK',conmat.trials(trialindex(i_tr)).event_pos);
+    RDKin.RDK.RDK = RDK.RDK;
+    [colmat,dotmat,dotsize,rdkidx,frames] = RDK_init_FShift_Probabil(RDKin.scr,RDKin.Propixx,RDKin.RDK,RDKin.trial,RDKin.crs);
     
     % initialize fixation cross
     colmat_cr = repmat(p.crs.color' ,[1 1 size(colmat,3)]);
@@ -69,7 +72,7 @@ for i_tr = 1:numel(trialindex)
     timing(i_tr) = struct('VBLTimestamp',NaN(1,frames.flips),'StimulusOnsetTime',NaN(1,frames.flips),...
         'FlipTimestamp',NaN(1,frames.flips),'Missed',NaN(1,frames.flips));
     
-    %% set up responses
+    %% set up responses and bookkeeping
     %setup key presses
     key.presses{i_tr}=nan(size(colmat,3),sum(key.keymap));
     key.presses_t{i_tr}=nan(size(colmat,3),sum(key.keymap));
@@ -77,8 +80,10 @@ for i_tr = 1:numel(trialindex)
     resp(i_tr).trialnumber              = trialindex(i_tr);
     resp(i_tr).blocknumber              = conmat.trials(trialindex(i_tr)).blocknum;
     resp(i_tr).condition                = conmat.trials(trialindex(i_tr)).condition;
-    resp(i_tr).RDK2display              = conmat.trials(trialindex(i_tr)).RDK2display;
-    resp(i_tr).cue                      = conmat.trials(trialindex(i_tr)).cue; % attended RDK
+    resp(i_tr).trial_timing_type        = conmat.trials(trialindex(i_tr)).trial_timing_type;
+    resp(i_tr).cue_validity             = conmat.trials(trialindex(i_tr)).cue_validity; 
+    resp(i_tr).cue_validity_label       = conmat.trials(trialindex(i_tr)).cue_validity_label; 
+    resp(i_tr).cue                      = conmat.trials(trialindex(i_tr)).cue_direction; % attended RDK
     resp(i_tr).color_attended           = RDK.RDK(resp(i_tr).cue).col(1,:);
     resp(i_tr).freq_attended            = RDK.RDK(resp(i_tr).cue).freq;
     resp(i_tr).cue_onset_fr             = conmat.trials(trialindex(i_tr)).pre_cue_frames + 1;
@@ -88,13 +93,12 @@ for i_tr = 1:numel(trialindex)
     resp(i_tr).pre_cue_times            = conmat.trials(trialindex(i_tr)).pre_cue_times;
     resp(i_tr).post_cue_times           = conmat.trials(trialindex(i_tr)).post_cue_frames;
     resp(i_tr).post_cue_frames          = conmat.trials(trialindex(i_tr)).post_cue_times;
-    resp(i_tr).eventnum                 = conmat.trials(trialindex(i_tr)).eventnum;
-    resp(i_tr).eventtype                = conmat.trials(trialindex(i_tr)).eventtype; % 1 = target; 2 = distractor
-    resp(i_tr).eventRDK                 = conmat.trials(trialindex(i_tr)).eventRDK;
-    resp(i_tr).eventcolor               = cell2mat(cellfun(@(x) x(1,:),{RDK.RDK(resp(i_tr).eventRDK(resp(i_tr).eventRDK>0)).col},...
+    resp(i_tr).eventpos                 = conmat.trials(trialindex(i_tr)).event_pos; % target at which RDK?
+    resp(i_tr).event_type               = conmat.trials(trialindex(i_tr)).event_type; % 1 = targethue decrease; 2 = increase
+    resp(i_tr).eventRDK_color           = cell2mat(cellfun(@(x) x(1,:),{RDK.RDK(resp(i_tr).eventpos(resp(i_tr).eventpos>0)).col},...
         'UniformOutput',false)');
-    resp(i_tr).eventfreq                = [RDK.RDK(resp(i_tr).eventRDK(resp(i_tr).eventRDK>0)).freq]';
-    resp(i_tr).eventdirection           = conmat.trials(trialindex(i_tr)).eventdirection;
+    resp(i_tr).event_color              = conmat.trials(trialindex(i_tr)).event_col(1,:); 
+    resp(i_tr).eventRDK_freq            = [RDK.RDK(resp(i_tr).eventpos(resp(i_tr).eventpos>0)).freq]';
     resp(i_tr).event_onset_frames       = conmat.trials(trialindex(i_tr)).event_onset_frames;
     resp(i_tr).event_onset_times        = conmat.trials(trialindex(i_tr)).event_onset_times;
     
@@ -116,19 +120,19 @@ for i_tr = 1:numel(trialindex)
     % condition trigger
     resp(i_tr).triggernum = ...
         p.trig.tr_con_type(resp(i_tr).condition); % condition 1 2 3 4 5 6
-    try resp(i_tr).triggernum = resp(i_tr).triggernum + ...
-            p.trig.type(1,resp(i_tr).eventtype(1)); % first event? [target or distractor]
-    end
-    try resp(i_tr).triggernum = resp(i_tr).triggernum + ...
-            p.trig.type(2,resp(i_tr).eventtype(2)); % second event [target or distractor]
+    switch resp(i_tr).trial_timing_type
+        case 'regular'
+            resp(i_tr).triggernum = resp(i_tr).triggernum + p.trig.tr_timing_type(1);
+        case 'catch'
+            resp(i_tr).triggernum = resp(i_tr).triggernum + p.trig.tr_timing_type(2);
     end
     doutWave(resp(i_tr).cue_onset_fr) = resp(i_tr).triggernum;
     % event trigger
-    for i_ev = 1:resp(i_tr).eventnum
-        t.trigger = p.trig.event_type(resp(i_tr).eventtype(i_ev))+ ...
-             p.trig.event_dir(resp(i_tr).eventdirection(i_ev));
-         doutWave(resp(i_tr).event_onset_frames(i_ev)) = t.trigger;
-    end
+    t.trigger = p.trig.event_type(resp(i_tr).event_type)+ ...
+        p.trig.event_side(resp(i_tr).eventpos) + ...
+        p.trig.event_cuevalid(resp(i_tr).condition);
+    doutWave(resp(i_tr).event_onset_frames) = t.trigger;
+    
     doutWave = [doutWave;zeros(triggersPerRefresh-1,numel(doutWave))]; doutWave=doutWave(:);
     samplesPerFlip = triggersPerRefresh * p.scr_imgmultipl;
     % figure; plot(doutWave)        

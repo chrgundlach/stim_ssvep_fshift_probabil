@@ -16,7 +16,7 @@ end
 conmat.trialsperblock = conmat.totaltrials/conmat.totalblocks;
 
 % matrix with onset times of on framesfor RDKs
-t.onframesonset = nan(numel(RDK.RDK),p.scr_refrate*max(p.postcue_time));
+t.onframesonset = nan(numel(RDK.RDK),p.scr_refrate*max(p.postcue_time/1000));
 t.onframesonset_times = t.onframesonset; % onset times in s
 for i_rdk = 1:numel(RDK.RDK)
     t.mat = ceil(1:p.scr_refrate/RDK.RDK(i_rdk).freq:size(t.onframesonset,2));
@@ -25,8 +25,8 @@ for i_rdk = 1:numel(RDK.RDK)
 end
 
 % move
-t.movonset_frames=nan(1,p.scr_refrate*max(p.postcue_time));
-t.movonset_times=nan(1,p.scr_refrate*max(p.postcue_time));
+t.movonset_frames=nan(1,p.scr_refrate*max(p.postcue_time/1000));
+t.movonset_times=nan(1,p.scr_refrate*max(p.postcue_time/1000));
 t.mat = 1:p.scr_refrate/RDK.RDK(1).mov_freq:size(t.movonset_frames,2);
 t.movonset_frames(t.mat)=1;
 t.movonset_times(t.mat)=t.mat./p.scr_refrate;
@@ -34,7 +34,7 @@ t.movonset_times(t.mat)=t.mat./p.scr_refrate;
 
 %% start randomization
 % randomize condition
-if flag_training~=0
+if flag_training==0
     % distribute conditions
     conmat.mats.condition = [cell2mat(arrayfun(@(x,y) repmat(x,1,y), p.stim.condition, p.stim.con_repeats_e, 'UniformOutput', false)) ...
         cell2mat(arrayfun(@(x,y) repmat(x,1,y), p.stim.condition, p.stim.con_repeats_e*p.trial_irreg_prob, 'UniformOutput', false))];
@@ -55,107 +55,59 @@ end
 
 % determine attended RDK
 conmat.mats.cue_direction = nan(1,conmat.totaltrials);
+conmat.mats.cue_direction_label = cell(1,conmat.totaltrials);
 conmat.mats.cue_validity = nan(1,conmat.totaltrials);
 conmat.mats.cue_validity_label = cell(1,conmat.totaltrials);
-t.cue_validity = [1 1 2 2 3 3]; t.cue_validity_label = {'valid';'invalid';'neutral'};
+t.cue_validity = [1 1 2 2 3 3]; t.cue_validity_label = {'valid';'invalid';'neutral'}; t.cue_cue_direction_label = {'RDK1','RDK2','both'};
 for i_con = 1:numel(p.stim.condition)
     % determine cue direction [1 = left, 2 = right, 3 = both]
     conmat.mats.cue_direction(conmat.mats.condition==p.stim.condition(i_con)) = p.stim.RDK2attend(i_con);
+    conmat.mats.cue_direction_label(conmat.mats.condition==p.stim.condition(i_con)) = t.cue_cue_direction_label(p.stim.RDK2attend(i_con));
     % randomize cue conditions (valid, invalid, neutral) [1,2,3]
     conmat.mats.cue_validity(conmat.mats.condition==p.stim.condition(i_con)) = t.cue_validity(i_con);
     conmat.mats.cue_validity_label(conmat.mats.condition==p.stim.condition(i_con)) = t.cue_validity_label(t.cue_validity(i_con));
 end
 
-%%%%%%%% up to here
-
-% randomize cue (1 = attend to RDK 1; 2 = attend to RDK 2)
-t.mat = repmat(p.stim.RDK2attend,conmat.totaltrials/numel(p.stim.RDK2attend),1);
-conmat.mats.cue = t.mat(:)';
-
-
-% randomize event numbers per trial
-% check if event numbers add up
-if mod(conmat.totaltrials,numel(p.stim.eventnum))~=0 || mod(conmat.totaltrials/numel(p.stim.eventnum),2)~=0
-    error('rando:eventdistribute', 'Can not distribute event numbers (ratio: [%s]) equally across %1.0f trials',...
-        num2str(p.stim.eventnum), conmat.totaltrials);
-end
-conmat.mats.eventnum = repmat(p.stim.eventnum,1,conmat.totaltrials/numel(p.stim.eventnum));
-
-% randomize eventtype (1 = target; 2 = distractor)
-t.mat = nan(max(p.stim.eventnum),conmat.totaltrials/numel(p.stim.condition));
-% one event case
-t.idx = conmat.mats.eventnum(1:conmat.totaltrials/numel(p.stim.condition))==1;
-t.mat(1,t.idx) = ...
-    [repmat([1 2],1,floor(sum(t.idx)/2)) randperm(2,mod(sum(t.idx),2))];
-% two events case
-t.idx = conmat.mats.eventnum(1:conmat.totaltrials/numel(p.stim.condition))==2;
-t.seq = [1 2 1 2; 1 2 2 1];
-t.mat(:,t.idx) = ...
-    [repmat(t.seq,1,floor(sum(t.idx)/size(t.seq,2))) ...
-    t.seq(:,randperm(size(t.seq,2),mod(sum(t.idx),size(t.seq,2))))];
-% add all together
-conmat.mats.eventtype = repmat(t.mat,1,numel(p.stim.condition));
-
-
-
-% determine event RDK
-t.mat = [1 2; 2 1];
-conmat.mats.eventRDK = nan(max(p.stim.eventnum),conmat.totaltrials);
-for i_r = 1:size(conmat.mats.eventRDK,1)
-    for i_c = 1:size(conmat.mats.eventRDK,2)
-        if ~isnan(conmat.mats.eventtype(i_r,i_c))
-            conmat.mats.eventRDK(i_r,i_c)=t.mat(conmat.mats.eventtype(i_r,i_c),conmat.mats.cue(i_c));
-        end
-    end
-end
-
-
-% randomize event directions (according to RDK.event.direction)
-conmat.mats.eventdirection = nan(max(p.stim.eventnum),conmat.totaltrials);
-t.mat = [repmat(1:4,1,floor(sum(~isnan(conmat.mats.eventtype(:)))/4)) randperm(4,mod(sum(~isnan(conmat.mats.eventtype(:))),4))];
-conmat.mats.eventdirection(~isnan(conmat.mats.eventtype)) = t.mat(randperm(numel(t.mat)));
-
-
-% pre-allocate possible presentation times
-conmat.mats.event_onset_frames = nan(max(p.stim.eventnum),conmat.totaltrials);
-t.poss_frames = find(p.stim.event.min_onset<t.movonset_times & ...
-    t.movonset_times<(p.stim.time_postcue-p.stim.event.length-p.stim.event.min_offset));
-t.poss_frames_1 = find(p.stim.event.min_onset<t.movonset_times & ...
-    t.movonset_times<(p.stim.time_postcue-p.stim.event.length-p.stim.event.min_offset-p.stim.event.min_dist-0.01));
-t.poss_frames_2 = find(p.stim.event.min_onset+p.stim.event.min_dist<t.movonset_times & ...
-    t.movonset_times<(p.stim.time_postcue-p.stim.event.length-p.stim.event.min_offset));
-% loop across conditions
+% determine target RDKs
+conmat.mats.event_pos=nan(1,conmat.totaltrials);
+conmat.mats.event_pos_label = cell(1,conmat.totaltrials);
 for i_con = 1:numel(p.stim.condition)
-    % for single events first
-    t.idx = repmat(conmat.mats.cue,2,1) == i_con & repmat(conmat.mats.eventnum,2,1) == 1 & ~isnan(conmat.mats.eventtype);
-    if sum(t.idx(:))<numel(t.poss_frames) % if more possible positons than actual events
-        t.poss_frames_mat = t.poss_frames(randsample(numel(t.poss_frames),sum(t.idx(:))));
-    else
-        t.poss_frames_mat = [repmat(t.poss_frames,1,floor(sum(t.idx(:))/numel(t.poss_frames)))...
-            t.poss_frames(randsample(numel(t.poss_frames),mod(sum(t.idx(:)),numel(t.poss_frames))))];
-    end
-    % write to frame mat
-    conmat.mats.event_onset_frames(t.idx)=t.poss_frames_mat;
-    
-    % for two events
-    t.idx = repmat(conmat.mats.cue,2,1) == i_con & repmat(conmat.mats.eventnum,2,1) == 2;
-    t.idx2=find(t.idx(1,:));
-    t.poss_frames_mat = [];
-    % loop across all events
-    for i_ev = 1:numel(t.idx2)
-        t.poss_frames_mat(1,i_ev)= t.poss_frames_1(randperm(numel(t.poss_frames_1),1));
-        % index all positions still possible
-        t.idx3 = t.poss_frames_2>(t.poss_frames_mat(1,i_ev)+p.stim.event.min_dist*p.scr_refrate);
-        t.idx4 = find(t.idx3);
-        % randomly select from possible frames (uniqform distribution)
-        t.idx5 = t.idx4(randsample(numel(t.idx4),1));
-        % randomly select from pssoble frames (beta distribution random number) --> compensate for righward distribution?
-%         t.idx5 = round(betarnd(1,5,1)*(t.idx4(end)-t.idx4(1))+t.idx4(1));
-        t.idx5 = round(betarnd(1.2,3,1)*(t.idx4(end)-t.idx4(1))+t.idx4(1));
-        t.poss_frames_mat(2,i_ev)=t.poss_frames_2(t.idx5);
-    end
-    conmat.mats.event_onset_frames(t.idx)=t.poss_frames_mat;
-    
+    % index all trials
+    conmat.mats.event_pos(conmat.mats.condition == p.stim.condition(i_con)) = p.stim.targetRDK(i_con);
+    conmat.mats.event_pos_label(conmat.mats.condition == p.stim.condition(i_con)) = {sprintf('RDK%1.0f',p.stim.targetRDK(i_con))};
+end
+
+
+% randomize post-cue target timing (catch trials and regular trials)
+conmat.mats.event_onset_frames = nan(1,conmat.totaltrials);
+% all RDKs on in control window
+t.poss_frames_ctrl = find((p.targ_win_ctrl(1)/1000)<t.movonset_times & ...
+    t.movonset_times<(p.targ_win_ctrl(2)/1000) & ...
+    all(~isnan(t.onframesonset),1));
+
+% all RDKs on in regular window
+t.poss_frames_reg = find((p.targ_win_reg(1)/1000)<t.movonset_times & ...
+    t.movonset_times<(p.targ_win_reg(2)/1000) & ...
+    all(~isnan(t.onframesonset),1));
+
+% randomize for all control trials
+for i_con = 1:numel(p.stim.condition)
+    % index condition and control trials
+    t.idx = conmat.mats.condition == p.stim.condition(i_con) & strcmp(conmat.mats.trial_timing_type, 'catch');
+    % randomly assign frames
+    conmat.mats.event_onset_frames(t.idx) = [...
+        repmat(t.poss_frames_ctrl,1,floor(sum(t.idx)/numel(t.poss_frames_ctrl))), ...
+        t.poss_frames_ctrl(randsample(numel(t.poss_frames_ctrl),mod(sum(t.idx),numel(t.poss_frames_ctrl))))];
+end
+
+% randomize for all regular trials
+for i_con = 1:numel(p.stim.condition)
+    % index condition and control trials
+    t.idx = conmat.mats.condition == p.stim.condition(i_con) & strcmp(conmat.mats.trial_timing_type, 'regular');
+    % randomly assign frames
+    conmat.mats.event_onset_frames(t.idx) = [...
+        repmat(t.poss_frames_reg,1,floor(sum(t.idx)/numel(t.poss_frames_reg))), ...
+        t.poss_frames_ctrl(randsample(numel(t.poss_frames_reg),mod(sum(t.idx),numel(t.poss_frames_reg))))];
 end
 conmat.mats.event_onset_times = conmat.mats.event_onset_frames./p.scr_refrate;
 % % graphical check
@@ -170,7 +122,7 @@ conmat.mats.event_onset_times = conmat.mats.event_onset_frames./p.scr_refrate;
 
 % randomize pre-cue times
 % all possible pre_cue_frames
-t.allframes = p.stim.time_precue(1)*p.scr_refrate:p.stim.time_precue(2)*p.scr_refrate;
+t.allframes = (p.precue_time_n(1)/1000)*p.scr_refrate:(p.precue_time_n(2)/1000)*p.scr_refrate;
 t.allframes = t.allframes(mod(t.allframes,p.scr_imgmultipl)==0); % only frames that are integers of frames per flip (i.e. 4)
 if conmat.totaltrials<numel(t.allframes)
     conmat.mats.pre_cue_frames = t.allframes(randsample(1:numel(t.allframes),conmat.totaltrials));
@@ -185,21 +137,78 @@ conmat.mats.pre_cue_times = conmat.mats.pre_cue_frames./p.scr_refrate;
 conmat.mats.event_onset_times = conmat.mats.event_onset_times+conmat.mats.pre_cue_times;
 conmat.mats.event_onset_frames = conmat.mats.event_onset_frames + conmat.mats.pre_cue_frames;
 
+% randomize whether it's a chroma increase or decrease as target
+% 1 = hue decrease; 2 = hue increase
+conmat.mats.event_type = nan(1,conmat.totaltrials);
+% randomize for all control trials
+t.type = [1 2];
+for i_con = 1:numel(p.stim.condition)
+    % index condition and control trials
+    t.idx = conmat.mats.condition == p.stim.condition(i_con) & strcmp(conmat.mats.trial_timing_type, 'catch');
+    % randomly assign frames
+    t.mat  = [...
+        repmat(t.type,1,floor(sum(t.idx)/numel(t.type))), ...
+        t.poss_frames_ctrl(randsample(numel(t.type),mod(sum(t.idx),numel(t.type))))];
+    conmat.mats.event_type(t.idx) = t.mat(randperm(numel(t.mat)));
+end
+
+% randomize for all regular trials
+t.type = [1 2];
+for i_con = 1:numel(p.stim.condition)
+    % index condition and control trials
+    t.idx = conmat.mats.condition == p.stim.condition(i_con) & strcmp(conmat.mats.trial_timing_type, 'regular');
+    % randomly assign frames
+    t.mat  = [...
+        repmat(t.type,1,floor(sum(t.idx)/numel(t.type))), ...
+        t.poss_frames_ctrl(randsample(numel(t.type),mod(sum(t.idx),numel(t.type))))];
+    conmat.mats.event_type(t.idx) = t.mat(randperm(numel(t.mat)));
+end
+
+% define RDK color
+% cols2plot_lab = xyz2lab(rgb2xyz_custom(cols2plot,[0.665 0.321], [0.172 0.726], [0.163 0.039], [0.3127 0.3290]));
+% c = makecform('lab2lch');
+% lchpict = applycform(labpict,c);
+
+% define RDK chroma increases and decreases
+for i_RDK = 1:numel(RDK.RDK)
+    t.xyzcol = rgb2xyz_custom(RDK.RDK(i_RDK).col(1,1:3),[0.665 0.321], [0.172 0.726], [0.163 0.039], [0.3127 0.3290]);
+    t.lchcol = colorspace('LCH<-XYZ',t.xyzcol);
+    t.targetcols_lch = [ t.lchcol+[0 t.lchcol(2)*(RDK.RDK(i_RDK).chromatarget(1)/100) 0]; ...
+        t.lchcol+[0 t.lchcol(2)*(RDK.RDK(i_RDK).chromatarget(2)/100) 0]];
+    t.targetcols_xyz = colorspace('XYZ<-LCH',t.targetcols_lch);
+    t.targetcols_rgb = xyz2rgb_custom(t.targetcols_xyz,[0.665 0.321], [0.172 0.726], [0.163 0.039], [0.3127 0.3290]);
+    t.targetcols_rgb_clipped = t.targetcols_rgb;
+    t.targetcols_rgb_clipped(t.targetcols_rgb_clipped<0)=0;
+    RDK.RDK(i_RDK).eventcol = {[t.targetcols_rgb(1,:) 1; RDK.RDK(i_RDK).col(2,:)]; ...
+        [t.targetcols_rgb(2,:) 1; RDK.RDK(i_RDK).col(2,:)]};
+end
+
+% define RGB target color
+conmat.mats.event_col = cell(1,conmat.totaltrials);
+for i_tr = 1:conmat.totaltrials
+    conmat.mats.event_col{i_tr} = RDK.RDK(conmat.mats.event_pos(i_tr)).eventcol{conmat.mats.event_type(i_tr)};
+end
+
+
 %% randomize all information across experiment
 t.tidx = randperm(conmat.totaltrials);
 conmat.mats.condition = conmat.mats.condition(:,t.tidx);
-conmat.mats.cue = conmat.mats.cue(:,t.tidx);
-conmat.mats.eventnum = conmat.mats.eventnum(:,t.tidx);
-conmat.mats.eventtype = conmat.mats.eventtype(:,t.tidx);
-conmat.mats.eventRDK = conmat.mats.eventRDK(:,t.tidx);
-conmat.mats.eventdirection = conmat.mats.eventdirection(:,t.tidx);
+conmat.mats.trial_timing_type = conmat.mats.trial_timing_type(t.tidx);
+conmat.mats.cue_direction = conmat.mats.cue_direction(:,t.tidx);
+conmat.mats.cue_direction_label = conmat.mats.cue_direction_label(:,t.tidx);
+conmat.mats.cue_validity = conmat.mats.cue_validity(:,t.tidx);
+conmat.mats.cue_validity_label = conmat.mats.cue_validity_label(:,t.tidx);
 conmat.mats.event_onset_frames = conmat.mats.event_onset_frames(:,t.tidx);
 conmat.mats.event_onset_times = conmat.mats.event_onset_times(:,t.tidx);
+conmat.mats.event_pos = conmat.mats.event_pos(:,t.tidx);
+conmat.mats.event_pos_label = conmat.mats.event_pos_label(:,t.tidx);
+conmat.mats.event_type = conmat.mats.event_type(:,t.tidx);
+conmat.mats.event_col = conmat.mats.event_col(:,t.tidx);
 conmat.mats.pre_cue_frames = conmat.mats.pre_cue_frames(:,t.tidx);
 conmat.mats.pre_cue_times = conmat.mats.pre_cue_times(:,t.tidx);
 
 conmat.mats.block = repmat(1:conmat.totalblocks,conmat.trialsperblock,1);
-conmat.mats.block = conmat.mats.block(:);
+conmat.mats.block = conmat.mats.block(:)';
 
 %% write all information into trial structure
 % create frame mat, onset time for events
@@ -211,45 +220,41 @@ for i_tr = 1:conmat.totaltrials
     % block number
     conmat.trials(i_tr).blocknum = conmat.mats.block(i_tr);
     
-    % condition [C1 C2; C1 C2] [C1 C2; C1 C2] [C1 C2; C1 C3] [C1 C2; C1 C3] [C1 C2; C2 C3] [C1 C2; C2 C3]
+    % condition
     conmat.trials(i_tr).condition = conmat.mats.condition(i_tr);
     
-    % RDK to display
-    t.mat = [p.stim.RDKcenter p.stim.RDKperi+2];
-    conmat.trials(i_tr).RDK2display = t.mat(conmat.mats.condition(i_tr),:);
-    
-    % cue ((RDK1, RDK2) [1,2])
-    conmat.trials(i_tr).cue = conmat.mats.cue(i_tr);
-    
-    % number of events
-    conmat.trials(i_tr).eventnum = conmat.mats.eventnum(i_tr);
-    
-    % type of events ((target, distractor) [1, 2])
-    conmat.trials(i_tr).eventtype = conmat.mats.eventtype(:,i_tr);
-    
-    % which RDK shows event?
-    conmat.trials(i_tr).eventRDK = conmat.mats.eventRDK(:,i_tr);
-    
-    % eventdirection ((according to RDK.event.direction) [1 2 3 4])
-    conmat.trials(i_tr).eventdirection = conmat.mats.eventdirection(:,i_tr);
-    
-    % event onset frames
-    conmat.trials(i_tr).event_onset_frames = conmat.mats.event_onset_frames(:,i_tr);
-    
+    % trial timing type
+    conmat.trials(i_tr).trial_timing_type = conmat.mats.trial_timing_type{i_tr};
+
+    % cue direction
+    conmat.trials(i_tr).cue_direction = conmat.mats.cue_direction(i_tr);
+    conmat.trials(i_tr).cue_direction_label = conmat.mats.cue_direction_label{i_tr};
+
+    % cue validity
+    conmat.trials(i_tr).cue_validity = conmat.mats.cue_validity(i_tr);
+    conmat.trials(i_tr).cue_validity_label = conmat.mats.cue_validity_label{i_tr};
+
     % event onset times
-    conmat.trials(i_tr).event_onset_times = conmat.mats.event_onset_times(:,i_tr);
-    
-    % pre-cue frames
-    conmat.trials(i_tr).pre_cue_frames = conmat.mats.pre_cue_frames(:,i_tr);
-    
+    conmat.trials(i_tr).event_onset_frames = conmat.mats.event_onset_frames(i_tr);
+    conmat.trials(i_tr).event_onset_times = conmat.mats.event_onset_times(i_tr);
+
+    % event position
+    conmat.trials(i_tr).event_pos = conmat.mats.event_pos(i_tr);
+    conmat.trials(i_tr).event_pos_label = conmat.mats.event_pos_label{i_tr};
+
+    % event type [chroma decrease or increase]
+    conmat.trials(i_tr).event_type = conmat.mats.event_type(i_tr);
+    conmat.trials(i_tr).event_col = conmat.mats.event_col{i_tr};
+        
     % pre-cue times
+    conmat.trials(i_tr).pre_cue_frames = conmat.mats.pre_cue_frames(:,i_tr);
     conmat.trials(i_tr).pre_cue_times = conmat.mats.pre_cue_times(:,i_tr);
     
     % post-cue times
-    conmat.trials(i_tr).post_cue_times = p.stim.time_postcue;
+    conmat.trials(i_tr).post_cue_times = max(p.postcue_time)/1000;
     
     % post-cue frames
-    conmat.trials(i_tr).post_cue_frames = p.stim.time_postcue*p.scr_refrate;
+    conmat.trials(i_tr).post_cue_frames = conmat.trials(i_tr).post_cue_times*p.scr_refrate;
 end
 
 

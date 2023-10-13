@@ -40,8 +40,7 @@ p.isol.TrlAdj           = 5;                    % number of trials used for isol
 p.isol.MaxStd           = 10;                   % standard deviation tolerated
 p.isol.run              = false;                % isoluminance run?
 p.isol.override         = [];                   % manually set colors for RDK1 to RDKXs e.g. []
-% p.isol.override         = [0 0.0627450980392157 0.156862745098039 1;0 0.0823529411764706 0 1;0.0862745098039216 0.0345098039215686 0 1];
-% p.isol.override         = [0 0.332549019607843 0.831372549019608 1;0 0.439215686274510 0 1;0.454901960784314 0.181960784313726 0 1];
+p.isol.override         = [0.0862745098039216 0.0345098039215686 0 1;0 0.0627450980392157 0.156862745098039 1;0 0.0823529411764706 0 1 ];
 p.isol.bckgr            = p.scr_color(1:3)+0.2;          % isoluminant to background or different color?
 % p.isol.bckgr            = p.scr_color;          % isoluminant to background or different color?
 
@@ -60,7 +59,7 @@ p.precue_time_n         = [1500 2000];          % pre cue time range of normal t
 p.postcue_time          = [2750 2750];          % post cue time
 p.ITI                   = [1000 1000];          % inter trial interval in ms
 
-p.targ_duration         = [150];                % time for target luminance change in ms
+p.targ_duration         = [0.150];              % time for target luminance change in s
 p.targ_chromachange     = [-15 -5; 5 15];       % changes in chromaticity [decreases high low; increases low high]   
 p.targ_win_reg          = [1500 2500];          % presentation time window for regular trials
 p.targ_win_ctrl         = [300 1500];           % presentation time window for control trials trials
@@ -84,6 +83,7 @@ RDK.RDK(1).mov_speed    = 1;                            % movement speed in pixe
 RDK.RDK(1).mov_dir      = [0 1; 0 -1; -1 0; 1 0];       % movement direction  [0 1; 0 -1; -1 0; 1 0] = up, down, left, right
 RDK.RDK(1).dot_size     = 10;                           % size of dots
 RDK.RDK(1).shape        = 1;                            % 1 = square RDK; 0 = ellipse/circle RDK;
+RDK.RDK(1).chromatarget = [-10 10];                     % percent changes in chroma defined as events
 
 RDK.RDK(2:3) = deal(RDK.RDK(1));
 [RDK.RDK(2:3).col] = deal([0 0.4 1 1; p.scr_color(1:3) 0], [0 1 0 1; p.scr_color(1:3) 0]);
@@ -91,8 +91,9 @@ RDK.RDK(2:3) = deal(RDK.RDK(1));
 
 %plot_colorwheel([1 0.4 0; 0 0.4 1; 0 1 0],'ColorSpace','propixxrgb','LAB_L',50,'NumSegments',60,'AlphaColWheel',1,'LumBackground',100)
  
-RDK.event.type          = 'colorchange';       % event type global motion
-RDK.event.duration      = p.targ_duration;      % time of coherent motion
+RDK.event.type          = 'colorchange';       % event type color change
+RDK.event.duration      = p.targ_duration;      % time of color onset
+RDK.event.coherence     = 0.8;                  % ration of dots coherently changing color
 
 % fixation cross
 p.crs.color             = [0.8 0.8 0.8 1];      % color of fixation cross
@@ -105,10 +106,13 @@ p.trig.rec_start        = 253;                  % trigger to start recording
 p.trig.rec_stop         = 254;                  % trigger to stop recording
 p.trig.tr_start         = 77;                   % trial start; main experiment
 p.trig.tr_stop          = 88;                   % trial end; main experiment
-p.trig.tr_con_type      = [1 2 3 4 5 6 7 8 9 10 11 12]*10;        % condition type
-p.trig.type             = [1 2; 5 7];     % [first: target, distractor; second: target, distractor]
+p.trig.tr_con_type      = [1 2 3 4 5 6]*10;     % condition type
+p.trig.tr_timing_type   = [0 1];                % trial timing type: regular or catch trial
+p.trig.event_side       = [100 200];            % left right
+p.trig.event_cuevalid   = [10 10 20 20 30 30];  % valid invalid neutral
+p.trig.event_type       = [1 2];                % hue increase hue decrease
 p.trig.button           = 150;                   % button press
-p.trig.event_type       = [201 202];              % target, distractor
+
 
 % possible condition triggers:
 % {[1 101 201 111 121 211 221]; [2 102 202 112 122 212 222]; [3 103 203 113 123 213 223]; ...
@@ -187,7 +191,8 @@ rng(p.sub,'v4')
 [RDK.RDK.freq] = deal(RDK.RDK(randperm(numel(RDK.RDK))).freq);
 
 % randomize colors? yes
-[RDK.RDK.col] = deal(RDK.RDK(randperm(numel(RDK.RDK))).col_init);
+t.colridx = randperm(numel(RDK.RDK));
+[RDK.RDK.col] = deal(RDK.RDK(t.colridx).col_init);
 
 % initialize blank variables
 timing = []; button_presses = []; resp = []; randmat = [];
@@ -290,7 +295,7 @@ else
     % option3: use manual override
     if ~isempty(p.isol.override)
         isol.opt(3).available = true;
-        isol.opt(3).colors = p.isol.override;
+        isol.opt(3).colors = p.isol.override(t.colridx,:);
         isol.opt(3).text = sprintf('manuell definiert in p.isol override: %s',sprintf('[%1.2f %1.2f %1.2f] ',isol.opt(3).colors(:,1:3)'));
     else
         isol.opt(3).available = false;
@@ -316,6 +321,10 @@ else
         Screen('Flip', ps.window, 0);
     end
     Col2Use = isol.opt(isol.prompt.idx(key.keycode(IsoButtons(1:numel(isol.prompt.idx)))==1)).colors;
+    % for troubleshooting/testing
+    % Col2Use =p.isol.override(t.colridx,:);
+
+
     % use selected colors
     for i_RDK = 1:numel(RDK.RDK)
         RDK.RDK(i_RDK).col(1,:) = Col2Use(i_RDK,:);
@@ -415,7 +424,7 @@ randmat.experiment = rand_FShift_Probabil(p, RDK,  0);    % randomization
 for i_bl = p.flag_block:p.stim.blocknum
     % start experiment
     [timing.experiment{i_bl},button_presses.experiment{i_bl},resp.experiment{i_bl}] = ...
-        pres_FShift_PerIrr(p, ps, key, RDK, randmat.experiment, i_bl,0);
+        pres_FShift_Probabil(p, ps, key, RDK, randmat.experiment, i_bl,0);
     % save logfiles
     save(sprintf('%s%s',p.log.path,p.filename),'timing','button_presses','resp','randmat','p', 'RDK')
           
