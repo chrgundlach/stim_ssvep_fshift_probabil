@@ -169,13 +169,14 @@ for i_quad=1:p.scr_imgmultipl
 end
 
 %% keyboard and ports setup ???
+% keyboard setup
 KbName('UnifyKeyNames')
-Buttons = [KbName('ESCAPE') KbName('Q') KbName('SPACE') KbName('j') KbName('n') KbName('1!') KbName('2@') KbName('3#')];
+Buttons = [KbName('ESCAPE') KbName('Q') KbName('SPACE') KbName('UpArrow') KbName('DownArrow')];
 RestrictKeysForKbCheck(Buttons);
 key.keymap=false(1,256);
 key.keymap(Buttons) = true;
 key.keymap_ind = find(key.keymap);
-[key.ESC, key.SECRET, key.SPACE, key.YES, key.NO] = deal(...
+[key.ESC, key.SECRET, key.SPACE, key.INCREASE, key.DECREASE] = deal(...
     Buttons(1),Buttons(2),Buttons(3),Buttons(4),Buttons(5));
 
 %% start experiment
@@ -368,12 +369,12 @@ end
 
 % keyboard setup
 KbName('UnifyKeyNames')
-Buttons = [KbName('ESCAPE') KbName('Q') KbName('SPACE') KbName('j') KbName('n') KbName('1!') KbName('2@') KbName('3#')];
+Buttons = [KbName('ESCAPE') KbName('Q') KbName('SPACE') KbName('UpArrow') KbName('DownArrow')];
 RestrictKeysForKbCheck(Buttons);
 key.keymap=false(1,256);
 key.keymap(Buttons) = true;
 key.keymap_ind = find(key.keymap);
-[key.ESC, key.SECRET, key.SPACE, key.YES, key.NO] = deal(...
+[key.ESC, key.SECRET, key.SPACE, key.INCREASE, key.DECREASE] = deal(...
     Buttons(1),Buttons(2),Buttons(3),Buttons(4),Buttons(5));
 
 

@@ -229,70 +229,41 @@ for i_tr = 1:numel(trialindex)
         end
     end
     
-    % check for hits {'hit','miss','CR','FA_proper','FA'}
-    resp(i_tr).button_presses_type = {}; %{'hit','miss','CR','FA_proper','FA'}
-    resp(i_tr).button_presses_RT = []; % reaction time in ms (after event or closest to other event)
-    resp(i_tr).event_response_type = {}; %{'hit','miss','CR','FA_proper'}
+    % check for hits {'hit','miss','error'}
+    resp(i_tr).event_response_type = {}; %{'hit','miss','error'}
     resp(i_tr).event_response_RT = []; %reaction time or nan
-    % all relevant presses 
-    t.presses = resp(i_tr).button_presses_t(:,key.keymap_ind==key.SPACE);
-    % first define response windows
-    if any(~isnan(resp(i_tr).eventtype))
-        t.respwin = (resp(i_tr).event_onset_times(~isnan(resp(i_tr).eventtype))+(p.targ_respwin/1000))*1000;
+    % define correct responses
+    if resp(i_tr).event_type == 1 % 1 = targethue decrease; 2 = increase
+        button_index = key.keymap_ind == key.DECREASE;
+    elseif resp(i_tr).event_type == 2 % 1 = targethue decrease; 2 = increase
+        button_index = key.keymap_ind == key.INCREASE;
     end
-    % loop across button presses
-    for i_press = 1:numel(t.presses)
-        if any(~isnan(resp(i_tr).eventtype)) % is there an event?
-            t.idx = t.presses(i_press)>=t.respwin(:,1) & t.presses(i_press)<=t.respwin(:,2);
-            % not in any response window? --> FA; no reaction time
-            if sum(t.idx)== 0
-                resp(i_tr).button_presses_type{i_press} = 'FA';
-                % no reaction time
-                resp(i_tr).button_presses_RT(i_press) = nan;
-            else
-                if resp(i_tr).eventtype(t.idx)== 1
-                    resp(i_tr).button_presses_type{i_press} = 'hit';
-                else
-                    resp(i_tr).button_presses_type{i_press} = 'FA_proper';
-                end
-                resp(i_tr).event_response_type{t.idx} = resp(i_tr).button_presses_type{i_press};
-                % reaction time?
-                resp(i_tr).button_presses_RT(i_press) = t.presses(i_press)-(resp(i_tr).event_onset_times(t.idx)*1000);
-                resp(i_tr).event_response_RT(t.idx) = resp(i_tr).button_presses_RT(i_press) ;
-            end
-            
-        else
-            % no events --> all presses are false alarms; no reaction time
-            resp(i_tr).button_presses_type{i_press} = 'FA';
-            resp(i_tr).button_presses_RT(i_press) = nan;
-        end
-    end
-    % check for correct responses or misses
-    for i_ev = 1:resp(i_tr).eventnum
-        if isempty(resp(i_tr).event_response_type)| numel(resp(i_tr).event_response_type)<i_ev
-            if resp(i_tr).eventtype(i_ev)==1
-                resp(i_tr).event_response_type{i_ev}='miss';
-            else
-                resp(i_tr).event_response_type{i_ev}='CR';
-            end
-            resp(i_tr).event_response_RT(i_ev) = nan;
-        else
-            if isempty(resp(i_tr).event_response_type{i_ev})
-                if resp(i_tr).eventtype(i_ev)==1
-                    resp(i_tr).event_response_type{i_ev}='miss';
-                else
-                    resp(i_tr).event_response_type{i_ev}='CR';
-                end
-                resp(i_tr).event_response_RT(i_ev) = nan;
+    if ~isempty(resp(i_tr).button_presses_t) % any button presses?
+        % target-button presses in time window?
+        hitindex = find(resp(i_tr).button_presses_t(:,button_index) > (resp(i_tr).event_onset_times*1000+p.targ_respwin(1)) & ...
+            resp(i_tr).button_presses_t(:,button_index) < (resp(i_tr).event_onset_times*1000+p.targ_respwin(2)));
+        % button press of any other button in response window?
+        errorindex = find(resp(i_tr).button_presses_t(:,~button_index) > (resp(i_tr).event_onset_times*1000+p.targ_respwin(1)) & ...
+            resp(i_tr).button_presses_t(:,~button_index) < (resp(i_tr).event_onset_times*1000+p.targ_respwin(2)));
+        if any(hitindex) % any hits?
+            resp(i_tr).event_response_type = 'hit'; % save hits (button presses in correct time window)
+            resp(i_tr).event_response_RT = (resp(i_tr).button_presses_t(hitindex(1),button_index) - resp(i_tr).event_onset_times);
+        else % no hit
+            if any(errorindex) % but an error?
+                resp(i_tr).event_response_type = 'error';
+                resp(i_tr).event_response_RT = (resp(i_tr).button_presses_t(errorindex(1),button_index) - resp(i_tr).event_onset_times);
+            else % no, than it's a miss!
+                resp(i_tr).event_response_type = 'FA';
             end
         end
+    else % no button presses at all, then it is a miss!
+        resp(i_tr).event_response_type = 'miss';
     end
     
+    
     % wait
-    crttime2 = GetSecs;
-    t.timetowait = ((p.ITI(1)/1000)+RDKin.trial.duration)-(crttime2 - inittime);
-    ttt=WaitSecs(t.timetowait);
-    crttime3 = GetSecs; % for troubleshooting
+    ttt=WaitSecs(conmat.trials(trialindex(i_tr)).ITI/1000-((GetSecs - crttime)));
+    crttime2 = GetSecs; % for troubleshooting
     
     
 end
