@@ -107,7 +107,7 @@ for i_con = 1:numel(p.stim.condition)
     % randomly assign frames
     conmat.mats.event_onset_frames(t.idx) = [...
         repmat(t.poss_frames_reg,1,floor(sum(t.idx)/numel(t.poss_frames_reg))), ...
-        t.poss_frames_ctrl(randsample(numel(t.poss_frames_reg),mod(sum(t.idx),numel(t.poss_frames_reg))))];
+        t.poss_frames_reg(randsample(numel(t.poss_frames_reg),mod(sum(t.idx),numel(t.poss_frames_reg))))];
 end
 conmat.mats.event_onset_times = conmat.mats.event_onset_frames./p.scr_refrate;
 % % graphical check
@@ -148,7 +148,7 @@ for i_con = 1:numel(p.stim.condition)
     % randomly assign frames
     t.mat  = [...
         repmat(t.type,1,floor(sum(t.idx)/numel(t.type))), ...
-        t.poss_frames_ctrl(randsample(numel(t.type),mod(sum(t.idx),numel(t.type))))];
+        t.type(randsample(numel(t.type),mod(sum(t.idx),numel(t.type))))];
     conmat.mats.event_type(t.idx) = t.mat(randperm(numel(t.mat)));
 end
 
@@ -160,7 +160,7 @@ for i_con = 1:numel(p.stim.condition)
     % randomly assign frames
     t.mat  = [...
         repmat(t.type,1,floor(sum(t.idx)/numel(t.type))), ...
-        t.poss_frames_ctrl(randsample(numel(t.type),mod(sum(t.idx),numel(t.type))))];
+        t.type(randsample(numel(t.type),mod(sum(t.idx),numel(t.type))))];
     conmat.mats.event_type(t.idx) = t.mat(randperm(numel(t.mat)));
 end
 
@@ -175,12 +175,20 @@ for i_RDK = 1:numel(RDK.RDK)
     t.lchcol = colorspace('LCH<-XYZ',t.xyzcol);
     t.targetcols_lch = [ t.lchcol+[0 t.lchcol(2)*(RDK.RDK(i_RDK).chromatarget(1)/100) 0]; ...
         t.lchcol+[0 t.lchcol(2)*(RDK.RDK(i_RDK).chromatarget(2)/100) 0]];
+%     t.targetcols_lch = [ t.lchcol+[0 t.lchcol(2)*(RDK.RDK(i_RDK).chromatarget(1)/100) 0]; ...
+%         t.lchcol+[0 t.lchcol(2)*(RDK.RDK(i_RDK).chromatarget(2)/100) 0]];
+
     t.targetcols_xyz = colorspace('XYZ<-LCH',t.targetcols_lch);
     t.targetcols_rgb = xyz2rgb_custom(t.targetcols_xyz,[0.665 0.321], [0.172 0.726], [0.163 0.039], [0.3127 0.3290]);
     t.targetcols_rgb_clipped = t.targetcols_rgb;
     t.targetcols_rgb_clipped(t.targetcols_rgb_clipped<0)=0;
-    RDK.RDK(i_RDK).eventcol = {[t.targetcols_rgb(1,:) 1; RDK.RDK(i_RDK).col(2,:)]; ...
-        [t.targetcols_rgb(2,:) 1; RDK.RDK(i_RDK).col(2,:)]};
+    RDK.RDK(i_RDK).eventcol = {[t.targetcols_rgb_clipped(1,:) 1; RDK.RDK(i_RDK).col(2,:)]; ...
+        [t.targetcols_rgb_clipped(2,:) 1; RDK.RDK(i_RDK).col(2,:)]};
+
+%     % retest
+%     t.lchcol_t = colorspace('LCH<-XYZ', ...
+%         rgb2xyz_custom(t.targetcols_rgb_clipped, ...
+%         [0.665 0.321], [0.172 0.726], [0.163 0.039], [0.3127 0.3290]));
 end
 
 % define RGB target color

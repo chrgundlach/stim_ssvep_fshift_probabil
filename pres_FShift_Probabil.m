@@ -62,11 +62,24 @@ for i_tr = 1:numel(trialindex)
     RDKin.RDK.RDK = RDK.RDK;
     [colmat,dotmat,dotsize,rdkidx,frames] = RDK_init_FShift_Probabil(RDKin.scr,RDKin.Propixx,RDKin.RDK,RDKin.trial,RDKin.crs);
     
+  
     % initialize fixation cross
-    colmat_cr = repmat(p.crs.color' ,[1 1 size(colmat,3)]);
-    % from cue onwards: color of to be attended RDK
-    colmat_cr(:,:,(conmat.trials(trialindex(i_tr)).pre_cue_frames/p.scr_imgmultipl)+1:end)=...
-        repmat(RDK.RDK(conmat.trials(trialindex(i_tr)).cue).col(1,:)',[1,1,conmat.trials(trialindex(i_tr)).post_cue_frames/p.scr_imgmultipl]);
+    colmat_cr = repmat(p.crs.color' ,[1 size(p.crs.lines,2), size(colmat,3)]);
+    if conmat.trials(trialindex(i_tr)).cue_direction ==3
+        % cue both colors
+        t.idx = randsample(2,2);
+        colmat_cr(:,[1:4:end 2:4:end],(conmat.trials(trialindex(i_tr)).pre_cue_frames/p.scr_imgmultipl)+1:end)=...
+            repmat(RDK.RDK(t.idx(1)).col(1,:)', ...
+            [1,size(p.crs.lines,2)/2,conmat.trials(trialindex(i_tr)).post_cue_frames/p.scr_imgmultipl]);
+        colmat_cr(:,[3:4:end 4:4:end],(conmat.trials(trialindex(i_tr)).pre_cue_frames/p.scr_imgmultipl)+1:end)=...
+            repmat(RDK.RDK(t.idx(2)).col(1,:)', ...
+            [1,size(p.crs.lines,2)/2,conmat.trials(trialindex(i_tr)).post_cue_frames/p.scr_imgmultipl]);
+    else
+        % from cue onwards: color of to be attended RDK
+        colmat_cr(:,:,(conmat.trials(trialindex(i_tr)).pre_cue_frames/p.scr_imgmultipl)+1:end)=...
+            repmat(RDK.RDK(conmat.trials(trialindex(i_tr)).cue_direction).col(1,:)', ...
+            [1,size(p.crs.lines,2),conmat.trials(trialindex(i_tr)).post_cue_frames/p.scr_imgmultipl]);
+    end
     
     % preallocate timing
     timing(i_tr) = struct('VBLTimestamp',NaN(1,frames.flips),'StimulusOnsetTime',NaN(1,frames.flips),...
@@ -164,11 +177,19 @@ for i_tr = 1:numel(trialindex)
         % RDK
         Screen('DrawDots', ps.window, dotmat(:,:,i_fl), dotsize(:,i_fl), colmat(:,:,i_fl), ps.center, 0, 0);
         % fixation cross
-        Screen('DrawLines', ps.window, p.crs.lines, p.crs.width, colmat_cr(:,1,i_fl)', ps.center, 0);
+        Screen('DrawLines', ps.window, p.crs.lines, p.crs.width, colmat_cr(:,:,i_fl), ps.center, 0);
         
         %% start trigger schedule and start listening to response device
         if i_fl == 1 % send the trigger with the start of the 1st flip
             Datapixx('RegWrVideoSync');
+        end
+
+        %trs
+        if i_fl > conmat.trials(i_tr).event_onset_frames/4 & i_fl < conmat.trials(i_tr).event_onset_frames/4+3
+%             fprintf('event!')
+%             unique(colmat(:,rdkidx(:,i_fl)==2,i_fl))
+%             t.tt = colmat(:,rdkidx(:,i_fl)==1,i_fl);
+            t.tt2 = conmat.trials(i_tr).event_type;
         end
         
         % Flip
@@ -198,9 +219,14 @@ for i_tr = 1:numel(trialindex)
     
     % get time
     crttime = GetSecs;
-    
+
+       
     % add waiting period to check for late button presses
-    ttt=WaitSecs(p.targ_respwin(2)/1000-p.stim.event.min_offset-p.stim.event.length);
+    ttt=WaitSecs(p.targ_respwin(2)/1000- ...
+        ((conmat.trials(trialindex(i_tr)).post_cue_times + conmat.trials(trialindex(i_tr)).pre_cue_times) ...
+        - conmat.trials(trialindex(i_tr)).event_onset_times) - ...
+        p.targ_duration);
+
     
     % check for button presses
     [key.pressed, key.firstPress]=KbQueueCheck(ps.RespDev);
@@ -240,18 +266,18 @@ for i_tr = 1:numel(trialindex)
     end
     if ~isempty(resp(i_tr).button_presses_t) % any button presses?
         % target-button presses in time window?
-        hitindex = find(resp(i_tr).button_presses_t(:,button_index) > (resp(i_tr).event_onset_times*1000+p.targ_respwin(1)) & ...
-            resp(i_tr).button_presses_t(:,button_index) < (resp(i_tr).event_onset_times*1000+p.targ_respwin(2)));
+        hitindex = (resp(i_tr).button_presses_t(:,button_index) > (resp(i_tr).event_onset_times*1000+p.targ_respwin(1)) & ...
+            resp(i_tr).button_presses_t(:,button_index) < (resp(i_tr).event_onset_times*1000+p.targ_respwin(2)))& button_index;
         % button press of any other button in response window?
-        errorindex = find(resp(i_tr).button_presses_t(:,~button_index) > (resp(i_tr).event_onset_times*1000+p.targ_respwin(1)) & ...
-            resp(i_tr).button_presses_t(:,~button_index) < (resp(i_tr).event_onset_times*1000+p.targ_respwin(2)));
+        errorindex = (resp(i_tr).button_presses_t > (resp(i_tr).event_onset_times*1000+p.targ_respwin(1)) & ...
+            resp(i_tr).button_presses_t < (resp(i_tr).event_onset_times*1000+p.targ_respwin(2))) & ~button_index;
         if any(hitindex) % any hits?
             resp(i_tr).event_response_type = 'hit'; % save hits (button presses in correct time window)
-            resp(i_tr).event_response_RT = (resp(i_tr).button_presses_t(hitindex(1),button_index) - resp(i_tr).event_onset_times);
+            resp(i_tr).event_response_RT = resp(i_tr).button_presses_t(hitindex) - resp(i_tr).event_onset_times*1000;
         else % no hit
             if any(errorindex) % but an error?
                 resp(i_tr).event_response_type = 'error';
-                resp(i_tr).event_response_RT = (resp(i_tr).button_presses_t(errorindex(1),button_index) - resp(i_tr).event_onset_times);
+                resp(i_tr).event_response_RT = resp(i_tr).button_presses_t(errorindex) - resp(i_tr).event_onset_times*1000;
             else % no, than it's a miss!
                 resp(i_tr).event_response_type = 'FA';
             end
@@ -262,8 +288,9 @@ for i_tr = 1:numel(trialindex)
     
     
     % wait
-    ttt=WaitSecs(conmat.trials(trialindex(i_tr)).ITI/1000-((GetSecs - crttime)));
+    ttt=WaitSecs(max(p.ITI)/1000-((GetSecs - crttime)));
     crttime2 = GetSecs; % for troubleshooting
+
     
     
 end

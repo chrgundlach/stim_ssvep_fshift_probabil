@@ -163,8 +163,8 @@ for r = 1:length(RDK.RDK)
     % current implementation creates a flicker for RDKs really alternating between the two specified colors
     % and not between 'not displayed' and 'displayed'
     alphamat = colmat_r(4,:,:); % extract alpha values
-    % alphamat(alphamat>0)= 1; % look for non-zero alpha values and set them to 1
-    alphamat(alphamat>=0)= 1; % set all transparency values to 1;
+    alphamat(alphamat>0)= 1; % look for non-zero alpha values and set them to 1
+%     alphamat(alphamat>=0)= 1; % set all transparency values to 1;
     colmat_r(4,:,:) = alphamat; % replace alpha values with adjusted alpha values
     
     
@@ -279,7 +279,7 @@ for r = 1:length(RDK.RDK)
 
     % troublehsooting:
     % plotting
-    figure; plot(squeeze(colmat(1,:,:))')
+%     figure; plot(squeeze(colmat(1,:,:))')
      
     
 end

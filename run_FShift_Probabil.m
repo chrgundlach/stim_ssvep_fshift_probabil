@@ -5,7 +5,7 @@ function [] = run_FShift_Probabil(sub,flag_training, flag_isolum, flag_block)
 %       flag_training:  1 = do training
 %       flag_isolum:    1 = do isoluminance adjustment
 %       flag_block:     1 = start with block 1
-%           e.g. run_FShift_PerIrr(1,1, 0, 1)
+%           e.g. run_FShift_Probabil(1,1, 0, 1)
 % 
 % current version includes two central relevant and one central irrelevant RDK with hue changes as target to be discriminated
 % target within each trial
@@ -41,6 +41,8 @@ p.isol.MaxStd           = 10;                   % standard deviation tolerated
 p.isol.run              = false;                % isoluminance run?
 p.isol.override         = [];                   % manually set colors for RDK1 to RDKXs e.g. []
 p.isol.override         = [0.0862745098039216 0.0345098039215686 0 1;0 0.0627450980392157 0.156862745098039 1;0 0.0823529411764706 0 1 ];
+p.isol.override         = [0.0862745098039216 0.0345098039215686 0 1;0 0.0627450980392157 0.156862745098039 1;0 0.0823529411764706 0 1 ].*2; p.isol.override(p.isol.override>1)=1;
+p.isol.override         = [0.0862745098039216 0.0345098039215686 0 1;0 0.0627450980392157 0.156862745098039 1;0.02 0.0823529411764706 0.02 1 ].*2; p.isol.override(p.isol.override>1)=1;
 p.isol.bckgr            = p.scr_color(1:3)+0.2;          % isoluminant to background or different color?
 % p.isol.bckgr            = p.scr_color;          % isoluminant to background or different color?
 
@@ -60,7 +62,6 @@ p.postcue_time          = [2750 2750];          % post cue time
 p.ITI                   = [1000 1000];          % inter trial interval in ms
 
 p.targ_duration         = [0.150];              % time for target luminance change in s
-p.targ_chromachange     = [-15 -5; 5 15];       % changes in chromaticity [decreases high low; increases low high]   
 p.targ_win_reg          = [1500 2500];          % presentation time window for regular trials
 p.targ_win_ctrl         = [300 1500];           % presentation time window for control trials trials
 p.targ_respwin          = [200 1200];           % response window in ms
@@ -78,22 +79,23 @@ RDK.RDK(1).centershift  = [0 0];                        % position of RDK center
 RDK.RDK(1).col          = [1 0.4 0 1; p.scr_color(1:3) 0];% "on" and "off" color
 RDK.RDK(1).freq         = 18;                            % flicker frequency, frequency of a full "on"-"off"-cycle
 RDK.RDK(1).mov_freq     = 120;                          % Defines how frequently the dot position is updated; 0 will adjust the update-frequency to your flicker frequency (i.e. dot position will be updated with every "on"-and every "off"-frame); 120 will update the position for every frame for 120Hz or for every 1. quadrant for 480Hz 
-RDK.RDK(1).num          = 85;                           % number of dots
+RDK.RDK(1).num          = 100;                           % number of dots
 RDK.RDK(1).mov_speed    = 1;                            % movement speed in pixel
 RDK.RDK(1).mov_dir      = [0 1; 0 -1; -1 0; 1 0];       % movement direction  [0 1; 0 -1; -1 0; 1 0] = up, down, left, right
 RDK.RDK(1).dot_size     = 10;                           % size of dots
-RDK.RDK(1).shape        = 1;                            % 1 = square RDK; 0 = ellipse/circle RDK;
-RDK.RDK(1).chromatarget = [-10 10];                     % percent changes in chroma defined as events
+RDK.RDK(1).shape        = 0;                            % 1 = square RDK; 0 = ellipse/circle RDK;
+RDK.RDK(1).chromatarget = [-80 150];                     % percent changes in chroma defined as events
 
 RDK.RDK(2:3) = deal(RDK.RDK(1));
 [RDK.RDK(2:3).col] = deal([0 0.4 1 1; p.scr_color(1:3) 0], [0 1 0 1; p.scr_color(1:3) 0]);
 [RDK.RDK(2:3).freq] = deal(21, 24);
+[RDK.RDK(2:3).chromatarget] = deal([-80 500], [-80 800]);
 
 %plot_colorwheel([1 0.4 0; 0 0.4 1; 0 1 0],'ColorSpace','propixxrgb','LAB_L',50,'NumSegments',60,'AlphaColWheel',1,'LumBackground',100)
  
 RDK.event.type          = 'colorchange';       % event type color change
 RDK.event.duration      = p.targ_duration;      % time of color onset
-RDK.event.coherence     = 0.8;                  % ration of dots coherently changing color
+RDK.event.coherence     = 0.8;                    % ration of dots coherently changing color
 
 % fixation cross
 p.crs.color             = [0.8 0.8 0.8 1];      % color of fixation cross
@@ -119,7 +121,7 @@ p.trig.button           = 150;                   % button press
 % [4 104 204 114 124 214 224]; [5 105 205 115 125 215 225]; [6 106 206 116 126 216 226]}
 
 % logfiles
-p.log.path              = '/home/pc/matlab/user/christopher/SSVEP_FShift_Probabil/logfiles/';
+p.log.path              = '/home/stimulationspc/matlab/User/christopher/stim_ssvep_fshift_probabil/logfiles';
 p.log.exp_name          = 'SSVEP_FShift_Probabil';
 p.log.add               = '_a';
 
@@ -171,7 +173,7 @@ end
 %% keyboard and ports setup ???
 % keyboard setup
 KbName('UnifyKeyNames')
-Buttons = [KbName('ESCAPE') KbName('Q') KbName('SPACE') KbName('UpArrow') KbName('DownArrow')];
+Buttons = [KbName('ESCAPE') KbName('Q') KbName('SPACE') KbName('UpArrow') KbName('DownArrow') KbName('1!') KbName('2@') KbName('3#')];
 RestrictKeysForKbCheck(Buttons);
 key.keymap=false(1,256);
 key.keymap(Buttons) = true;
@@ -194,48 +196,49 @@ rng(p.sub,'v4')
 % randomize colors? yes
 t.colridx = randperm(numel(RDK.RDK));
 [RDK.RDK.col] = deal(RDK.RDK(t.colridx).col_init);
+[RDK.RDK.chromatarget] = deal(RDK.RDK(t.colridx).chromatarget);
 
 % initialize blank variables
 timing = []; button_presses = []; resp = []; randmat = [];
 
 %% initial training
-if p.flag_training
-    fprintf(1,'\nTraing starten mit q')
-    inp.prompt_check = 0;
-    while inp.prompt_check == 0             % loop to check for correct input
-        [key.keyisdown,key.secs,key.keycode] = KbCheck;
-        if key.keycode(key.SECRET)==1
-            flag_trainend = 0; inp.prompt_check = 1;
-        end
-        Screen('Flip', ps.window, 0);
-    end
-    
-    
-    i_bl = 1;
-    flag_trainend = 0;
-    while flag_trainend == 0 % do training until ended
-        rand('state',p.sub*i_bl) % determine randstate
-        randmat.training{i_bl} = rand_FShift_PerIrr(p, RDK,  1);
-        [timing.training{i_bl},button_presses.training{i_bl},resp.training{i_bl}] = ...
-            pres_FShift_PerIrr(p, ps, key, RDK, randmat.training{i_bl}, i_bl,1);
-        save(sprintf('%s%s',p.log.path,p.filename),'timing','button_presses','resp','randmat','p', 'RDK')
-        pres_feedback(resp.training{i_bl},p,ps, key,RDK)
-               
-        % loop for training to be repeated
-        fprintf(1,'\nTraing wiederholen? (j/n)')
-        inp.prompt_check = 0;
-        while inp.prompt_check == 0             % loop to check for correct input
-            [key.keyisdown,key.secs,key.keycode] = KbCheck; 
-            if key.keycode(key.YES)==1
-                i_bl = i_bl + 1; flag_trainend = 0; inp.prompt_check = 1;
-            elseif key.keycode(key.NO)==1
-                flag_trainend = 1; inp.prompt_check = 1;
-            end
-            Screen('Flip', ps.window, 0);
-        end  
-        
-    end
-end
+% if p.flag_training
+%     fprintf(1,'\nTraing starten mit q')
+%     inp.prompt_check = 0;
+%     while inp.prompt_check == 0             % loop to check for correct input
+%         [key.keyisdown,key.secs,key.keycode] = KbCheck;
+%         if key.keycode(key.SECRET)==1
+%             flag_trainend = 0; inp.prompt_check = 1;
+%         end
+%         Screen('Flip', ps.window, 0);
+%     end
+%     
+%     
+%     i_bl = 1;
+%     flag_trainend = 0;
+%     while flag_trainend == 0 % do training until ended
+%         rand('state',p.sub*i_bl) % determine randstate
+%         randmat.training{i_bl} = rand_FShift_Probabil(p, RDK,  1);
+%         [timing.training{i_bl},button_presses.training{i_bl},resp.training{i_bl}] = ...
+%             pres_FShift_Probabil(p, ps, key, RDK, randmat.training{i_bl}, i_bl,1);
+%         save(sprintf('%s%s',p.log.path,p.filename),'timing','button_presses','resp','randmat','p', 'RDK')
+%         pres_feedback(resp.training{i_bl},p,ps, key,RDK)
+%                
+%         % loop for training to be repeated
+%         fprintf(1,'\nTraing wiederholen? (j/n)')
+%         inp.prompt_check = 0;
+%         while inp.prompt_check == 0             % loop to check for correct input
+%             [key.keyisdown,key.secs,key.keycode] = KbCheck; 
+%             if key.keycode(key.YES)==1
+%                 i_bl = i_bl + 1; flag_trainend = 0; inp.prompt_check = 1;
+%             elseif key.keycode(key.NO)==1
+%                 flag_trainend = 1; inp.prompt_check = 1;
+%             end
+%             Screen('Flip', ps.window, 0);
+%         end  
+%         
+%     end
+% end
 
 %% then isoluminance adjustment
 % do the heterochromatic flicker photometry
@@ -369,13 +372,13 @@ end
 
 % keyboard setup
 KbName('UnifyKeyNames')
-Buttons = [KbName('ESCAPE') KbName('Q') KbName('SPACE') KbName('UpArrow') KbName('DownArrow')];
+Buttons = [KbName('ESCAPE') KbName('Q') KbName('SPACE') KbName('UpArrow') KbName('DownArrow') KbName('j') KbName('n')];
 RestrictKeysForKbCheck(Buttons);
 key.keymap=false(1,256);
 key.keymap(Buttons) = true;
 key.keymap_ind = find(key.keymap);
-[key.ESC, key.SECRET, key.SPACE, key.INCREASE, key.DECREASE] = deal(...
-    Buttons(1),Buttons(2),Buttons(3),Buttons(4),Buttons(5));
+[key.ESC, key.SECRET, key.SPACE, key.INCREASE, key.DECREASE, key.YES, key.NO] = deal(...
+    Buttons(1),Buttons(2),Buttons(3),Buttons(4),Buttons(5), Buttons(6), Buttons(7));
 
 
 %% do training again?
@@ -397,7 +400,7 @@ while flag_trainend == 0 % do training until ended
     rng(p.sub*i_bl,'v4') % determine randstate
     randmat.training{i_bl} = rand_FShift_Probabil(p, RDK,  1);
     [timing.training{i_bl},button_presses.training{i_bl},resp.training{i_bl}] = ...
-        pres_FShift_PerIrr(p, ps, key, RDK, randmat.training{i_bl}, i_bl,1);
+        pres_FShift_Probabil(p, ps, key, RDK, randmat.training{i_bl}, i_bl,1);
     save(sprintf('%s%s',p.log.path,p.filename),'timing','button_presses','resp','randmat','p', 'RDK')
     pres_feedback(resp.training{i_bl},p,ps, key,RDK)
     
