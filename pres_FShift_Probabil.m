@@ -189,7 +189,7 @@ for i_tr = 1:numel(trialindex)
 %             fprintf('event!')
 %             unique(colmat(:,rdkidx(:,i_fl)==2,i_fl))
 %             t.tt = colmat(:,rdkidx(:,i_fl)==1,i_fl);
-            t.tt2 = conmat.trials(i_tr).event_type;
+            t.tt2 = [conmat.trials(i_tr).event_type conmat.trials(i_tr).event_pos RDK.RDK(conmat.trials(i_tr).event_pos).col(1,1:3)];
         end
         
         % Flip

@@ -122,8 +122,7 @@ RDK.RDK(1).shape        = 0;                            % 1 = square RDK; 0 = el
 RDK.RDK(1).chromatarget = p.chroma_target;              % percent changes in chroma defined as events
 
 RDK.RDK(2:3) = deal(RDK.RDK(1));
-%[RDK.RDK(2:3).col] = deal([0 0.4 1 1; p.scr_color(1:3) 0], [0 1 0 1; p.scr_color(1:3) 0]);
-[RDK.RDK.col] = deal([p.isol.override(1,:); p.scr_color(1:3) 0], [p.isol.override(2,:); p.scr_color(1:3) 0], [p.isol.override(3,:); p.scr_color(1:3) 0]);
+[RDK.RDK(2:3).col] = deal([0 0.4 1 1; p.scr_color(1:3) 0], [0 1 0 1; p.scr_color(1:3) 0]);
 [RDK.RDK(2:3).freq] = deal(21, 24);
 [RDK.RDK(2:3).chromatarget] = deal(p.chroma_target, p.chroma_target);
 
@@ -288,12 +287,12 @@ if flag_isolum == 1
     p.isol.init_cols = cell2mat(cellfun(@(x) x(1,1:3)', {RDK.RDK.col}, 'UniformOutput', false))';
     
     % start isoluminance script only RGB output (no alpha)
-    [Col2Use] = PRPX_IsolCol_480_Lab(...
+    [Col2Use] = PRPX_IsolCol_480_adj_CIELAB(...
         [p.isol.bckgr(1:3); p.isol.init_cols],...
         p.isol.TrlAdj,...
         p.isol.MaxStd,...
-        0,...
-        RDK.RDK(1).size.*2);
+        cellfun(@(x) x(1), {RDK.RDK.centershift}),...
+        RDK.RDK(1).size);
     
     for i_RDK = 1:numel(RDK.RDK)
         RDK.RDK(i_RDK).col(1,:) = [Col2Use(1+i_RDK,:) 1];
@@ -308,10 +307,10 @@ if flag_isolum == 1
         fprintf('RDK%1.0f [%1.4f %1.4f %1.4f %1.4f]\n', i_col,p.isol.coladj(i_col,:))
     end
     
-%     Screen('CloseAll')
-%     Datapixx('SetPropixxDlpSequenceProgram', 0);
-%     Datapixx('RegWrRd');
-%     Datapixx('close');
+    Screen('CloseAll')
+    Datapixx('SetPropixxDlpSequenceProgram', 0);
+    Datapixx('RegWrRd');
+    Datapixx('close');
 else
     % select colors differently
     fprintf(1,'\nKeine Isoluminanzeinstellung. Wie soll verfahren werden?')

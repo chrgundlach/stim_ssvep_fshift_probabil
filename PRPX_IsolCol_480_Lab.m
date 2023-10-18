@@ -60,10 +60,10 @@ Screen('BlendFunction', p.window,  GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 % Screen('BlendFunction', p.window,  GL_ONE, GL_ZERO); % no blending
 [p.screenXpixels, p.screenYpixels] = Screen('WindowSize', p.window); % get window size
 [p.xCenter, p.yCenter] = RectCenter(p.windowRect); % get center values of screen
-Buttons = [KbName('Q') KbName('SPACE') KbName('n') KbName('m')];
+Buttons = [KbName('Q') KbName('SPACE') KbName('n') KbName('m') KbName('RightShift')];
 RestrictKeysForKbCheck(Buttons); % allow input from all buttons
-[SECRETkey, SPACEkey, Nkey, Mkey] = deal(...
-    Buttons(1),Buttons(2),Buttons(3),Buttons(4));
+[SECRETkey, SPACEkey, Nkey, Mkey, Startkey] = deal(...
+    Buttons(1),Buttons(2),Buttons(3),Buttons(4), Buttons(5));
 ListenChar(-1) % block button presses to matlab; window STRG + C to exit and ListenChar(0) at end
 
 
@@ -85,7 +85,8 @@ for i_quad = 1:4 % shifst to quadrants
 end
 
 key.keyisdown = 0;
-while ~(key.keyisdown==1)
+key.keycode(Startkey)=0;
+while ~key.keycode(Startkey) %~(key.keyisdown==1) && 
     [key.keyisdown,key.secs,key.keycode] = KbCheck(-1);
     Screen('DrawTextures', p.window, repmat(p.offwin,1,4),[], newpos_stim, [], [], [], []);
     Screen('Flip', p.window, 0);
@@ -249,9 +250,10 @@ function [NewCol]=LabScaleLuminance(Color,NewLum)
 % transforming luminance value to Lab lightness (0-100)
 NewLum=100*NewLum(:)/255; 
 % transforming Propixx colors to Lab colors
-Color = xyz2lab(rgb2xyz_custom(Color,[0.665 0.321], [0.172 0.726], [0.163 0.039], [0.3127 0.3290]));
+Color = xyz2lab(rgb2xyz_custom(Color,[0.665 0.321], [0.172 0.726], [0.163 0.039], [0.3127 0.3290 1-0.3127-0.3290]));
 % replace lightness value with new Lab lightness value
 Color(:,1) = NewLum;
 % transform Lab colors back to Propixx color space
-NewCol=xyz2rgb_custom(lab2xyz(Color),[0.665 0.321], [0.172 0.726], [0.163 0.039], [0.3127 0.3290]);
+NewCol=xyz2rgb_custom(lab2xyz(Color),[0.665 0.321], [0.172 0.726], [0.163 0.039], [0.3127 0.3290 1-0.3127-0.3290]);
 end
+    

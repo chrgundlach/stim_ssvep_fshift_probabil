@@ -185,6 +185,10 @@ for i_RDK = 1:numel(RDK.RDK)
     RDK.RDK(i_RDK).eventcol = {[t.targetcols_rgb_clipped(1,:) 1; RDK.RDK(i_RDK).col(2,:)]; ...
         [t.targetcols_rgb_clipped(2,:) 1; RDK.RDK(i_RDK).col(2,:)]};
 
+    % bookkeeping
+    RDK.RDK(i_RDK).col_lch = t.lchcol;
+    RDK.RDK(i_RDK).eventcol_lch = t.targetcols_lch;
+
 %     % retest
 %     t.lchcol_t = colorspace('LCH<-XYZ', ...
 %         rgb2xyz_custom(t.targetcols_rgb_clipped, ...
@@ -217,6 +221,8 @@ conmat.mats.pre_cue_times = conmat.mats.pre_cue_times(:,t.tidx);
 
 conmat.mats.block = repmat(1:conmat.totalblocks,conmat.trialsperblock,1);
 conmat.mats.block = conmat.mats.block(:)';
+
+conmat.RDK = RDK;
 
 %% write all information into trial structure
 % create frame mat, onset time for events
