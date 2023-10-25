@@ -47,7 +47,7 @@ p.isol.override         = [0.0862745098039216 0.0345098039215686 0 1;0 0.0627450
 % p.isol.override         = [0.151573078382719	0.492713810961937	0.169273961794666 1; ... % green --> increases are hard
 %                             0.768808896052382	0.235396366987767	0.0676584621046665 1; ...% orange
 %                             0.700395021369019	0.219797886668636	0.690819078346578 1 ]; % purple/magenta
-% color 1 lum 68 chroma 60 [currently preferred #1]
+% color 1 lum 68 chroma 60 [currently preferred #2]
 p.isol.override         = [0.179103922145369	0.479134122907170	0.193900675407810 1; ... % green --> increases are hard
                             0.715591409278279	0.256239038997824	0.0950458443741471 1; ...% orange
                             0.648338268946474	0.245821973632775	0.639442314393116 1 ]; % purple/magenta
@@ -70,7 +70,7 @@ p.isol.bckgr            = [0.38 0.38 0.38 1];          % isoluminant to backgrou
 %                             0.700395021369019	0.219797886668636	0.690819078346578 1 ]; % purple/magenta
 
 %%%%
-% color version 2 green red/orange blue/purple lum 48 chroma 50 
+% color version 2 green red/orange blue/purple lum 48 chroma 50 [currently preferred #1]
 p.isol.override         = [0.0794654838295763	0.212979965009343	0.0694822333587645 1; ... % green
                             0.354923915689341	0.0960941504677729	0.0525769382198423 1; ...% orange/red
                             0.189288097847939	0.139241714541135	0.439109578562397 1 ]; % blue/magenta
@@ -114,7 +114,7 @@ RDK.RDK(1).centershift  = [0 0];                        % position of RDK center
 RDK.RDK(1).col          = [1 0.4 0 1; p.scr_color(1:3) 0];% "on" and "off" color
 RDK.RDK(1).freq         = 18;                            % flicker frequency, frequency of a full "on"-"off"-cycle
 RDK.RDK(1).mov_freq     = 120;                          % Defines how frequently the dot position is updated; 0 will adjust the update-frequency to your flicker frequency (i.e. dot position will be updated with every "on"-and every "off"-frame); 120 will update the position for every frame for 120Hz or for every 1. quadrant for 480Hz 
-RDK.RDK(1).num          = 100;                           % number of dots
+RDK.RDK(1).num          = 120;                           % number of dots
 RDK.RDK(1).mov_speed    = 1;                            % movement speed in pixel
 RDK.RDK(1).mov_dir      = [0 1; 0 -1; -1 0; 1 0];       % movement direction  [0 1; 0 -1; -1 0; 1 0] = up, down, left, right
 RDK.RDK(1).dot_size     = 10;                           % size of dots
