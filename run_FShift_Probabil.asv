@@ -26,7 +26,7 @@ p.flag_block            = flag_block;           % block number to start
 p.flag_training         = flag_training;        % do training
 
 p.ITI                   = [1000 1000];          % inter trial interval in ms
-p.targ_respwin          = [200 1100];           % time window for responses in ms
+p.targ_respwin          = [200 1000];           % time window for responses in ms
 
 % screen
 p.scr_num               = 1;                    % screen number
@@ -106,7 +106,7 @@ p.targ_respwin          = [200 1200];           % response window in ms
 % [240 240 100 100 100 100] = 88 min
 % [180 180 80 80 80 80] = 69 min; 748 trials; 680 regular; 68 catch trials
 
-p.stim.blocknum         = 17;                   % 44 trials per block and a length of around 4 minutes 44*(1.1+2.75+1.75)/60
+p.stim.blocknum         = 17;                   % 44 trials per block and a length of around 4 minutes
 
 
 % introduce RDK structure
@@ -391,7 +391,7 @@ else
     
     fprintf('\nselected colors:\n')
     for i_col = 1:size(p.isol.coladj,1)
-        fprintf('RDK%1.0f [%1.4f %1.4f %1.4f]\n', i_col,p.isol.coladj(i_col,1:3))
+        fprintf('RDK%1.0f [%1.4f %1.4f %1.4f]\n', i_col,p.isol.coladj(i_col,:))
     end
 end
 
@@ -427,8 +427,8 @@ key.keymap_ind = find(key.keymap);
 
 %% do training again?
 % loop for training to be repeated
-fprintf(1,'\n---\nAufgabenrelevante Farben für diese Versuchsperson: %s and %s',RDK.RDK(1:2).col_label)
-fprintf(1,'\nTraing starten (j/n)')
+fprintf(1,'\nAufgabenrelevante Farben: %s %s\n',RDK.RDK(1:2).col_label)
+fprintf(1,'/nTraing starten (j/n)')
 inp.prompt_check = 0;
 while inp.prompt_check == 0             % loop to check for correct input
     [key.keyisdown,key.secs,key.keycode] = KbCheck;

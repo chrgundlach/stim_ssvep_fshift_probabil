@@ -168,10 +168,6 @@ for i_tr = 1:numel(trialindex)
     KbQueueStart(ps.RespDev);
     KbQueueFlush(ps.RespDev);
     
-%     %trs
-%     inittime2=GetSecs;
-%     fprintf('\ntrial startup time: %1.3fs\n',inittime2-inittime)
-    
     % flip to get everything synced
     Screen('Flip', ps.window, 0);
     
@@ -189,19 +185,19 @@ for i_tr = 1:numel(trialindex)
         end
 
         %trs
-%         if i_fl > conmat.trials(i_tr).event_onset_frames/4 & i_fl < conmat.trials(i_tr).event_onset_frames/4+3
-% %             fprintf('event!')
-% %             unique(colmat(:,rdkidx(:,i_fl)==2,i_fl))
-% %             t.tt = colmat(:,rdkidx(:,i_fl)==1,i_fl);
-%             t.tt2 = [conmat.trials(i_tr).event_type conmat.trials(i_tr).event_pos RDK.RDK(conmat.trials(i_tr).event_pos).col(1,1:3)];
-%         end
+        if i_fl > conmat.trials(i_tr).event_onset_frames/4 & i_fl < conmat.trials(i_tr).event_onset_frames/4+3
+%             fprintf('event!')
+%             unique(colmat(:,rdkidx(:,i_fl)==2,i_fl))
+%             t.tt = colmat(:,rdkidx(:,i_fl)==1,i_fl);
+            t.tt2 = [conmat.trials(i_tr).event_type conmat.trials(i_tr).event_pos RDK.RDK(conmat.trials(i_tr).event_pos).col(1,1:3)];
+        end
         
         % Flip
         [timing(i_tr).VBLTimestamp(i_fl), timing(i_tr).StimulusOnsetTime(i_fl), timing(i_tr).FlipTimestamp(i_fl), timing(i_tr).Missed(i_fl)] = Screen('Flip', ps.window, 0);
 
         % get image
-        %current_display = Screen('GetImage',ps.window);
-        %imwrite(current_display,'./stims/all_stims_cue_redtarget_increase.png')
+        current_display = Screen('GetImage',ps.window);
+        imwrite(current_display,'./stims/all_stims_precue')
         
         % send trigger/save timing/ reset timing
         if i_fl == 1
@@ -296,8 +292,7 @@ for i_tr = 1:numel(trialindex)
     
     
     % wait
-    %ttt=WaitSecs(max(p.ITI)/1000-((GetSecs - crttime)));
-    ttt=WaitSecs(max(p.ITI)/1000-((GetSecs - crttime))-0.3); % to account for initial time for setting up the trial
+    ttt=WaitSecs(max(p.ITI)/1000-((GetSecs - crttime)));
     crttime2 = GetSecs; % for troubleshooting
 
     
